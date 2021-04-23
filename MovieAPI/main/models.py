@@ -2,6 +2,7 @@ from django.db import models
 from utils.constants import COUNTRIES, GENDERS
 from auth_.models import MainUser
 from django.utils import timezone
+from django.db.models import Avg, Func
 
 
 class Genre(models.Model):
@@ -46,6 +47,12 @@ class MPAA(models.Model):
         return self.title
 
 
+class MovieManager(models.Manager):
+
+    def get_movie(self, pk):
+        return self.filter(pk=pk)
+
+
 class Movie(models.Model):
     title = models.CharField(max_length=255, verbose_name='Название')
     original_title = models.CharField(max_length=255, verbose_name='Оригинальное название')
@@ -61,9 +68,11 @@ class Movie(models.Model):
     revenue = models.IntegerField(verbose_name='Выручка', null=True, blank=True)
     rating = models.ForeignKey(MPAA, on_delete=models.SET_NULL, verbose_name='Ограничение', null=True)
     time = models.IntegerField(verbose_name='Продолжительность в минутах')
-    avg_score = models.DecimalField(max_digits=1, decimal_places=1, verbose_name='Средняя оценка', null=True,
+    avg_score = models.DecimalField(max_digits=2, decimal_places=1, verbose_name='Средняя оценка', null=True,
                                     blank=True)
     cnt_voters = models.IntegerField(verbose_name='Количество проголосовавших', default=0)
+
+    objects = MovieManager()
 
     class Meta:
         verbose_name = 'Фильм'
@@ -79,11 +88,35 @@ class UniqueUserMovie(models.Model):
 
     class Meta:
         abstract = True
-        unique_together = ('user', 'movie')
+        constraints = [
+            models.UniqueConstraint(fields=['user', 'movie'], name='%(app_label)s_%(class)s_unique_user_movie')
+        ]
+
+
+class Round(Func):
+    function = "ROUND"
+    template = "%(function)s(%(expressions)s::numeric, 1)"
+
+
+class ScoreManager(models.Manager):
+
+    def get_movie_scores(self, movie_id):
+        return self.filter(movie__id=movie_id)
+
+    def get_movie_score_by_user(self, user_id, movie_id):
+        return self.filter(user__id=user_id, movie__id=movie_id)
+
+    def get_cnt_voters(self, pk):
+        return self.get_movie_scores(pk).count()
+
+    def avg_score(self, pk):
+        return self.get_movie_scores(pk).aggregate(rounded_avg_score=Round(Avg('score')))['rounded_avg_score']
 
 
 class Score(UniqueUserMovie):
     score = models.IntegerField(choices=list(zip(range(1, 11), range(1, 11))))
+
+    objects = ScoreManager()
 
     class Meta:
         verbose_name = 'Оценка'
@@ -102,12 +135,20 @@ class Watched(UniqueUserMovie):
         verbose_name_plural = 'Просмотренные'
 
 
+class ReviewManager(models.Manager):
+
+    def get_movie_reviews(self, movie_id):
+        return self.filter(movie__pk=movie_id)
+
+
 class Review(models.Model):
     author = models.ForeignKey(MainUser, on_delete=models.CASCADE)
     movie = models.ForeignKey(Movie, on_delete=models.CASCADE)
     created_date = models.DateTimeField(default=timezone.now)
     updated_date = models.DateTimeField(null=True, blank=True)
     content = models.TextField()
+
+    objects = ReviewManager()
 
     class Meta:
         verbose_name = 'Рецензия'
