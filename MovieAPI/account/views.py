@@ -56,6 +56,6 @@ class UserDeleteView(mixins.DestroyModelMixin,
         except Profile.DoesNotExist:
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
         self.perform_destroy(instance)
-        user = MainUser.objects.get(id=kwargs['pk'])
-        user.delete()
+        # user = MainUser.objects.get(id=kwargs['pk'])
+        # user.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)

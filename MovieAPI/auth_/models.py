@@ -64,3 +64,6 @@ class Profile(models.Model):
     class Meta:
         verbose_name = _('profile')
         verbose_name_plural = _('profiles')
+
+    def __str__(self):
+        return self.user.user_name
