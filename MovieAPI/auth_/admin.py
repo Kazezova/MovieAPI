@@ -13,7 +13,7 @@ class UserCreationForm(forms.ModelForm):
 
     class Meta:
         model = MainUser
-        fields = ('email', 'user_name', 'is_staff', )
+        fields = ('email', 'user_name', 'is_staff',)
 
     def clean_password2(self):
         password1 = self.cleaned_data.get("password1")
@@ -31,12 +31,11 @@ class UserCreationForm(forms.ModelForm):
 
 
 class UserChangeForm(forms.ModelForm):
-
     password = ReadOnlyPasswordHashField()
 
     class Meta:
         model = MainUser
-        fields = ('email', 'password', 'user_name', 'is_active', 'is_staff', )
+        fields = ('email', 'password', 'user_name', 'is_active', 'is_staff',)
 
 
 class UserAdmin(BaseUserAdmin):
@@ -44,10 +43,10 @@ class UserAdmin(BaseUserAdmin):
     add_form = UserCreationForm
 
     list_display = ('email', 'user_name', 'is_active', 'is_staff')
-    list_filter = ('is_staff', )
+    list_filter = ('is_staff',)
     fieldsets = (
         (None, {'fields': ('email', 'password')}),
-        ('Personal info', {'fields': ('user_name', )}),
+        ('Personal info', {'fields': ('user_name',)}),
         ('Permissions', {'fields': ('is_staff',)}),
     )
     add_fieldsets = (

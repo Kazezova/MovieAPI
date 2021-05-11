@@ -7,5 +7,3 @@ from auth_.models import MainUser, Profile
 def delete_related_user(sender, instance, **kwargs):
     user = MainUser.objects.get(id=instance.user.id)
     user.delete()
-
-

@@ -58,4 +58,4 @@ class UserDeleteView(mixins.DestroyModelMixin,
         self.perform_destroy(instance)
         # user = MainUser.objects.get(id=kwargs['pk'])
         # user.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=status.HTTP_200_OK)

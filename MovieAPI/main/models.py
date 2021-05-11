@@ -72,6 +72,7 @@ class Movie(models.Model):
     class Meta:
         verbose_name = 'Фильм'
         verbose_name_plural = 'Фильмы'
+        ordering = ('id',)
 
     def __str__(self):
         return self.original_title
