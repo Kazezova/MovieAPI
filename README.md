@@ -1,4 +1,7 @@
 # MovieAPI
+[![Python Version](https://img.shields.io/badge/python-3.8.1-brightgreen.svg)](https://python.org)
+[![Django Version](https://img.shields.io/badge/django-3.2-brightgreen.svg)](https://djangoproject.com)
+[![Django Rest Framework Version](https://img.shields.io/badge/djangorestframework-3.12.4-brightgreen.svg)](https://www.django-rest-framework.org/)
 ## Introduction
 The MovieAPI provides a RESTful web service to perform create movies web applications. It is written using a powerful and flexible toolkit, the Django REST framework (DRF). To see all the available methods and endpoints, you must read the project description. P.S. description not ready yet:)
 ## Getting started
