@@ -4,6 +4,8 @@ from django.contrib.auth.base_user import AbstractBaseUser
 from django.contrib.auth.base_user import BaseUserManager
 from django.utils.translation import ugettext_lazy as _
 from utils.constants import COUNTRIES, GENDERS
+from utils.validators import validate_size, validate_extension
+from utils.upload import user_avatar_directory_path
 
 
 class MainUserManager(BaseUserManager):
@@ -59,7 +61,7 @@ class Profile(models.Model):
     country = models.CharField(_('country'), max_length=2, choices=COUNTRIES, null=True, blank=True)
     birthday = models.DateField(null=True, blank=True)
     gender = models.IntegerField(choices=GENDERS, null=True, blank=True)
-    image = models.ImageField(null=True, blank=True)
+    image = models.ImageField(upload_to=user_avatar_directory_path, validators=[validate_size, validate_extension], null=True, blank=True)
 
     class Meta:
         verbose_name = _('profile')

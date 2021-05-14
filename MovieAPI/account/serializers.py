@@ -26,17 +26,13 @@ class UserSerializer(serializers.ModelSerializer):
         fields = ('id', 'user_name', 'email',)
 
 
-class ProfileDetailSerializer(serializers.ModelSerializer):
-    user = UserSerializer()
-    gender = ChoiceField(choices=GENDERS)
-    country = ChoiceField(choices=COUNTRIES)
-
-    class Meta:
-        model = Profile
-        fields = '__all__'
-
-
 class ProfileUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
         fields = '__all__'
+
+
+class ProfileDetailSerializer(ProfileUpdateSerializer):
+    user = UserSerializer()
+    gender = ChoiceField(choices=GENDERS)
+    country = ChoiceField(choices=COUNTRIES)

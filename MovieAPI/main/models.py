@@ -1,9 +1,12 @@
 from django.db import models
-from utils.constants import COUNTRIES, GENDERS
 from auth_.models import MainUser
 from django.utils import timezone
 
 from main.managers import *
+
+from utils.constants import COUNTRIES, GENDERS
+from utils.validators import validate_size, validate_extension
+from utils.upload import producer_image_directory_path, movie_image_directory_path
 
 
 class Genre(models.Model):
@@ -24,7 +27,8 @@ class Producer(models.Model):
     place_of_birth = models.CharField(verbose_name='Место рождения', max_length=100, null=True, blank=True)
     birthday = models.DateField(null=True, blank=True)
     gender = models.IntegerField(choices=GENDERS)
-    image = models.ImageField(null=True, blank=True)
+    image = models.ImageField(upload_to=producer_image_directory_path, validators=[validate_size, validate_extension], null=True,
+                              blank=True)
     genre = models.ManyToManyField(Genre)
     total_movies = models.IntegerField(null=True, blank=True)
 
@@ -51,7 +55,7 @@ class MPAA(models.Model):
 class Movie(models.Model):
     title = models.CharField(max_length=255, verbose_name='Название')
     original_title = models.CharField(max_length=255, verbose_name='Оригинальное название')
-    poster = models.ImageField(null=True, blank=True)
+    poster = models.ImageField(upload_to=movie_image_directory_path, validators=[validate_size, validate_extension], null=True, blank=True)
     tagline = models.TextField(verbose_name='Слоган', null=True, blank=True)
     short_description = models.TextField(verbose_name='Краткое описание')
     full_description = models.TextField(verbose_name='Полное описание', null=True, blank=True)
@@ -99,16 +103,33 @@ class Score(UniqueUserMovie):
         verbose_name_plural = 'Оценки'
 
 
-class Favorite(UniqueUserMovie):
-    class Meta:
-        verbose_name = 'Избранное'
-        verbose_name_plural = 'Избранные'
+# class Favorite(UniqueUserMovie):
+#     objects = FavoriteManager()
+#
+#     class Meta:
+#         verbose_name = 'Избранное'
+#         verbose_name_plural = 'Избранные'
+#
+#
+# class Watched(UniqueUserMovie):
+#     class Meta:
+#         verbose_name = 'Просмотренное'
+#         verbose_name_plural = 'Просмотренные'
 
 
-class Watched(UniqueUserMovie):
+class FavoriteWatched(UniqueUserMovie):
+    favorite = models.BooleanField(default=False)
+    watched = models.BooleanField(default=False)
+
+    objects = FavoriteWatchedManager()
+
     class Meta:
-        verbose_name = 'Просмотренное'
-        verbose_name_plural = 'Просмотренные'
+        verbose_name = 'Избранное/Просмотренное'
+        verbose_name_plural = 'Избранные/Просмотренные'
+        ordering = ('-id',)
+
+    def __str__(self):
+        return f'{self.user.user_name}: {self.movie.title}'
 
 
 class Review(models.Model):
