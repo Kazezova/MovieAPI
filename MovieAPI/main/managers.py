@@ -12,6 +12,12 @@ class MovieManager(models.Manager):
     def get_movie(self, pk):
         return self.filter(pk=pk)
 
+    def latest(self):
+        return self.order_by('-release_date')
+
+    def top_rated(self):
+        return self.order_by('-avg_score')
+
 
 class ScoreManager(models.Manager):
 

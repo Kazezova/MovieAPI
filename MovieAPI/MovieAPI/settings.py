@@ -26,7 +26,9 @@ SECRET_KEY = 'django-insecure-pl_guhwub@+ri694=7&mm8*n!lwgir9oa55^n#bo!p*i01m^@p
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
+INTERNAL_IPS = [
+    '127.0.0.1',
+]
 # Application definition
 
 INSTALLED_APPS = [
@@ -39,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'rest_framework_jwt',
     'django_filters',
+    'debug_toolbar',
     'auth_',
     'account',
     'main',
@@ -52,6 +55,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
 ]
 
 ROOT_URLCONF = 'MovieAPI.urls'
@@ -182,4 +186,44 @@ JWT_AUTH = {
     'JWT_AUTH_HEADER_PREFIX': 'JWT',
     'JWT_AUTH_COOKIE': None,
 
+}
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': True,
+    'formatters': {
+        'verbose': {
+            'format': '%(levelname)s -- %(asctime)s -- %(module)s: %(message)s',
+        },
+        'simple': {
+            'format': '%(levelname)s -- %(message)s'
+        }
+    },
+    'handlers': {
+        'file_handler': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'main_api.log',
+            'formatter': 'verbose'
+        },
+        'console_handler': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        }
+    },
+    'loggers': {
+        'main': {
+            'handlers': ['file_handler', 'console_handler'],
+            'level': 'DEBUG',
+        },
+        'auth_': {
+            'handlers': ['console_handler', 'file_handler'],
+            'level': 'DEBUG',
+        },
+        'account': {
+            'handlers': ['console_handler'],
+            'level': 'DEBUG',
+        },
+    },
 }

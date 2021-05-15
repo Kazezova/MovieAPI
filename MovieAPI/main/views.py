@@ -11,10 +11,14 @@ from main.models import Score, Movie, FavoriteWatched, Review, Genre, MPAA
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
 from main.permissions import IsAdminUserOrReadOnly
+from account.permissions import IsOwnerOrAdmin
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from main.filters import MovieFilter
 from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class MovieViewSet(mixins.ListModelMixin,
@@ -40,7 +44,9 @@ class MovieViewSet(mixins.ListModelMixin,
         movie = Movie.objects.get_movie(pk=pk).first()
         if movie:
             serializer = MovieDetailSerializer(movie)
+            logger.debug(f'Retrieved Movie object, ID: {pk}')
             return Response(serializer.data)
+        logger.debug(f'Trying to get nonexistent Movie object, ID: {pk}')
         return Response({'error': 'There is no such movie.'}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -52,14 +58,18 @@ def movie_crud(request):
         movie = Movie.objects.get_movie(pk=request.data['id']).first()
         if movie:
             serializer = MovieDetailSerializer(movie)
+            logger.debug(f"Retrieved Movie object, ID: {request.data['id']} by staff with ID: {request.user.id}")
             return Response(serializer.data, status=status.HTTP_200_OK)
+        logger.debug(f"Trying to get nonexistent Movie object, ID: {request.data['id']} ")
         return Response({'error': 'There is no such movie.'}, status=status.HTTP_404_NOT_FOUND)
     elif request.method == 'POST':
         data = request.data
         serializer = MovieCreateOrUpdateSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
+            logger.info(f"Created Movie object, ID: {request.data['id']} by staff with ID: {request.user.id}")
             return Response(serializer.data, status=status.HTTP_200_OK)
+        logger.error(f"Movie object cannot created, errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     elif request.method == 'PUT':
         movie = Movie.objects.get_movie(pk=request.data['id']).first()
@@ -67,14 +77,19 @@ def movie_crud(request):
             serializer = MovieCreateOrUpdateSerializer(instance=movie, data=request.data, partial=True)
             if serializer.is_valid():
                 serializer.save()
+                logger.info(f"Updated Movie object, ID: {request.data['id']} by staff with ID: {request.user.id}")
                 return Response(serializer.data, status=status.HTTP_200_OK)
+            logger.error(f"Movie object cannot updated, errors: {serializer.errors}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        logger.warning(f"Trying to update nonexistent Movie object, ID: {request.data['id']}")
         return Response({'error': 'There is no such movie.'}, status=status.HTTP_404_NOT_FOUND)
     elif request.method == 'DELETE':
         movie = Movie.objects.get_movie(pk=request.data['id']).first()
         if movie:
             movie.delete()
+            logger.info(f"Deleted Movie object, ID: {request.data['id']} by staff with ID: {request.user.id}")
             return Response({'status_message': 'Movie has been removed successfully.'}, status=status.HTTP_200_OK)
+        logger.warning(f"Trying to delete nonexistent Movie object, ID: {request.data['id']}")
         return Response({'error': 'There is no such movie.'}, status=status.HTTP_404_NOT_FOUND)
 
 
@@ -85,6 +100,22 @@ def mpaa_get(request):
         queryset = MPAA.objects.all()
         serializer = MPAASerializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes((AllowAny,))
+def latest(request):
+    queryset = Movie.objects.latest()
+    serializer = MovieListSerializer(queryset, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes((AllowAny,))
+def top_rated(request):
+    queryset = Movie.objects.top_rated()
+    serializer = MovieListSerializer(queryset, many=True)
+    return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 @api_view(['GET'])
@@ -120,7 +151,9 @@ class ScoreViewSet(viewsets.ViewSet):
         obj = Score.objects.get_movie_score_by_user(user_id=request.user.id, movie_id=movie_id).first()
         if obj:
             serializer = self.serializer_class(obj)
+            logger.debug(f"Retrieved Score object, ID: {obj.id}")
             return Response(serializer.data)
+        logger.warning(f"Trying to get nonexistent Score object.")
         return Response({'error': 'You have not yet rated the movie.'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(methods=['POST'], detail=False, permission_classes=(IsAuthenticated,))
@@ -138,8 +171,10 @@ class ScoreViewSet(viewsets.ViewSet):
 
         if serializer.is_valid():
             serializer.save()
+            logger.info(f"Score object created/updated.")
             # movie_score_update_view(movie_id)
             return Response(serializer.data, status=status.HTTP_200_OK)
+        logger.warning(f"Score object cannot created/updated, errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     @action(methods=['DELETE'], detail=False, permission_classes=(IsAuthenticated,))
@@ -148,8 +183,10 @@ class ScoreViewSet(viewsets.ViewSet):
         if saved_score:
             saved_score.delete()
             # movie_score_update_view(movie_id)
+            logger.info(f"Score object deleted.")
             return Response({'status_message': 'Movie rating has been removed successfully.'},
                             status=status.HTTP_200_OK)
+        logger.warning(f"Trying to delete nonexistent Score object.")
         return Response({'error': 'There is no such movie.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -255,7 +292,9 @@ class ReviewViewSet(viewsets.GenericViewSet):
             return self.get_paginated_response(serializer.data)
         elif queryset:
             serializer = ReviewSerializer(queryset, many=True)
+            logger.debug(f"Review objects retrieved, for movie ID: {movie_id}")
             return Response(serializer.data, status=status.HTTP_200_OK)
+        logger.debug(f"This Movie object has no reviews yet, ID: {movie_id}.")
         return Response({'error': 'This movie has no reviews yet.'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(methods=['POST'], detail=False, permission_classes=(IsAuthenticated,))
@@ -269,26 +308,41 @@ class ReviewViewSet(viewsets.GenericViewSet):
                 }
                 serializer = ReviewManipulateSerializer(instance=saved_review, data=data, partial=True)
             else:
+                logger.warning(f"Trying to update nonexistent Review object, ID: {request.data['review_id']}")
                 return Response({'error': 'There is no such review.'}, status=status.HTTP_400_BAD_REQUEST)
         else:
-            data = {
-                "author_id": request.user.id,
-                "movie_id": movie_id,
-                "created_date": timezone.now(),
-                "updated_date": None,
-                "content": request.data['content']
-            }
-            serializer = ReviewManipulateSerializer(data=data)
+            content = request.data.get('content', 0)
+            if content:
+                data = {
+                    "author_id": request.user.id,
+                    "movie_id": movie_id,
+                    "created_date": timezone.now(),
+                    "updated_date": None,
+                    "content": request.data['content']
+                }
+                serializer = ReviewManipulateSerializer(data=data)
+            else:
+                logger.error(f"Review object cannot created/updated, errors: content is required.")
+                return Response({"errors": "content is required."}, status=status.HTTP_400_BAD_REQUEST)
         if serializer.is_valid():
             serializer.save()
+            logger.info(f"Review object has been created/updated, ID: {serializer.data['id']}")
             return Response(serializer.data, status=status.HTTP_200_OK)
+        logger.error(f"Review object cannot created/updated, errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['DELETE'], detail=False, permission_classes=(IsAuthenticated,))
+    @action(methods=['DELETE'], detail=False, permission_classes=(IsOwnerOrAdmin,))
     def delete(self, request, movie_id=None):
         saved_review = Review.objects.get_review(request.data['review_id']).first()
         if saved_review:
-            saved_review.delete()
-            return Response({'status_message': 'Review has been removed successfully.'},
-                            status=status.HTTP_200_OK)
+            if self.check_object_permissions(self.request, saved_review):
+                saved_review.delete()
+                logger.info(f"Review object has been deleted, ID: {request.data['review_id']}")
+                return Response({'status_message': 'Review has been removed successfully.'},
+                                status=status.HTTP_200_OK)
+            logger.warning(
+                f"Review object cannot deleted, ID: {request.data['review_id']} by user ID: {request.user.id}")
+            return Response({'detail': 'You do not have permission to perform this action.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+        logger.warning(f"Trying to delete nonexistent Review object, ID: {request.data['review_id']}")
         return Response({'error': 'There is no such review.'}, status=status.HTTP_400_BAD_REQUEST)

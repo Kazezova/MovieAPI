@@ -67,7 +67,7 @@ class Movie(models.Model):
     revenue = models.IntegerField(verbose_name='Выручка', null=True, blank=True)
     rating = models.ForeignKey(MPAA, on_delete=models.SET_NULL, verbose_name='Ограничение', null=True)
     time = models.IntegerField(verbose_name='Продолжительность в минутах')
-    avg_score = models.DecimalField(max_digits=2, decimal_places=1, verbose_name='Средняя оценка', null=True,
+    avg_score = models.DecimalField(max_digits=3, decimal_places=1, verbose_name='Средняя оценка', null=True,
                                     blank=True)
     cnt_voters = models.IntegerField(verbose_name='Количество проголосовавших', default=0)
 

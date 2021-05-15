@@ -14,9 +14,9 @@ def delete_related_user(sender, instance, **kwargs):
 @receiver(pre_delete, sender=Profile)
 def delete_related_user_image(sender, instance, **kwargs):
     try:
-        img = instance.__class__.objects.get(id=instance.id).image.path
-        if os.path.exists(img):
-            os.remove(img)
+        img = instance.__class__.objects.get(id=instance.id).image or None
+        if img and os.path.exists(img.path):
+            os.remove(img.path)
     except ObjectDoesNotExist:
         pass
 
@@ -24,13 +24,10 @@ def delete_related_user_image(sender, instance, **kwargs):
 @receiver(pre_save, sender=Profile)
 def delete_related_user_old_image(sender, instance, **kwargs):
     try:
-        old_img = instance.__class__.objects.get(id=instance.id).image.path
-        try:
-            new_img = instance.image.path
-        except ObjectDoesNotExist:
-            new_img = None
-        if new_img != old_img:
-            if os.path.exists(old_img):
-                os.remove(old_img)
+        old_img = instance.__class__.objects.get(id=instance.id).image or None
+        new_img = instance.image or None
+        if old_img and new_img != old_img:
+            if os.path.exists(old_img.path):
+                os.remove(old_img.path)
     except ObjectDoesNotExist:
         pass

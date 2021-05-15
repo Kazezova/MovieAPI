@@ -6,6 +6,9 @@ from account.serializers import ProfileDetailSerializer, ProfileUpdateSerializer
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.parsers import FormParser, MultiPartParser, JSONParser
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class UserListView(generics.ListAPIView):
@@ -22,9 +25,11 @@ class UserRetrieveView(generics.RetrieveAPIView):
         try:
             instance = Profile.objects.get(user=kwargs['pk'])
         except Profile.DoesNotExist:
+            logger.warning(f"Trying to get nonexistent User object, ID: {kwargs['pk']}")
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
 
         serializer = self.get_serializer(instance)
+        logger.info(f"Retrieved User object, ID: {kwargs['pk']}")
         return Response(serializer.data)
 
 
@@ -39,6 +44,7 @@ class UserUpdateView(generics.UpdateAPIView):
             instance = Profile.objects.get(user=kwargs['pk'])
             self.check_object_permissions(self.request, instance)
         except Profile.DoesNotExist:
+            logger.warning(f"Trying to update nonexistent User object, ID: {kwargs['pk']}")
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
         data = request.data
         data['user'] = request.user.id
@@ -58,6 +64,7 @@ class UserDeleteView(generics.GenericAPIView,
             instance = Profile.objects.get(user=kwargs['pk'])
             self.check_object_permissions(self.request, instance)
         except Profile.DoesNotExist:
+            logger.warning(f"Trying to delete nonexistent User object, ID: {kwargs['pk']}")
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
         self.perform_destroy(instance)
 
