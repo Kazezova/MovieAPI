@@ -23,6 +23,7 @@ urlpatterns = [
     path('mpaa', views.mpaa_get),
     path('genre', views.genre_get),
     path('producer/<int:pk>', views.ProducerApiView.as_view()),
+    path('producers', views.ProducerListView.as_view()),
     path('latest', views.latest),
     path('top_rated', views.top_rated)
 ]

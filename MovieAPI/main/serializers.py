@@ -17,7 +17,7 @@ class MPAASerializer(serializers.ModelSerializer):
 class ProducerSerializer(serializers.ModelSerializer):
     class Meta:
         model = Producer
-        fields = ('first_name', 'last_name',)
+        fields = ('id', 'first_name', 'last_name',)
 
 
 class ProducerDetailSerializer(ProducerSerializer):
@@ -136,3 +136,9 @@ class ReviewManipulateSerializer(serializers.Serializer):
         if not obj:
             raise serializers.ValidationError("There is no such movie.")
         return data
+
+
+class GenreViewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Genre
+        fields = '__all__'

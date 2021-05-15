@@ -10,8 +10,7 @@ from rest_framework import status
 from main.models import Score, Movie, FavoriteWatched, Review, Genre, MPAA
 from rest_framework.pagination import LimitOffsetPagination
 from rest_framework.permissions import AllowAny, IsAuthenticated, IsAdminUser
-from main.permissions import IsAdminUserOrReadOnly
-from account.permissions import IsOwnerOrAdmin
+from main.permissions import IsAdminUserOrReadOnly, IsAuthorOrAdmin
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters
 from main.filters import MovieFilter
@@ -67,7 +66,7 @@ def movie_crud(request):
         serializer = MovieCreateOrUpdateSerializer(data=data)
         if serializer.is_valid():
             serializer.save()
-            logger.info(f"Created Movie object, ID: {request.data['id']} by staff with ID: {request.user.id}")
+            logger.info(f"Created Movie object, ID: {serializer.data['id']} by staff with ID: {request.user.id}")
             return Response(serializer.data, status=status.HTTP_200_OK)
         logger.error(f"Movie object cannot created, errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -104,6 +103,15 @@ def mpaa_get(request):
 
 @api_view(['GET'])
 @permission_classes((AllowAny,))
+def genre_get(request):
+    if request.method == 'GET':
+        queryset = Genre.objects.all()
+        serializer = GenreViewSerializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+@api_view(['GET'])
+@permission_classes((AllowAny,))
 def latest(request):
     queryset = Movie.objects.latest()
     serializer = MovieListSerializer(queryset, many=True)
@@ -116,15 +124,6 @@ def top_rated(request):
     queryset = Movie.objects.top_rated()
     serializer = MovieListSerializer(queryset, many=True)
     return Response(serializer.data, status=status.HTTP_200_OK)
-
-
-@api_view(['GET'])
-@permission_classes((AllowAny,))
-def genre_get(request):
-    if request.method == 'GET':
-        queryset = Genre.objects.all()
-        serializer = GenreSerializer(queryset, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ProducerApiView(generics.CreateAPIView,
@@ -141,6 +140,12 @@ class ProducerApiView(generics.CreateAPIView,
         self.perform_destroy(instance)
         return Response({'status_message': 'Producer has been removed successfully.'},
                         status=status.HTTP_204_NO_CONTENT)
+
+
+class ProducerListView(generics.ListAPIView):
+    queryset = Producer.objects.all()
+    serializer_class = ProducerSerializer
+    permission_classes = (AllowAny,)
 
 
 class ScoreViewSet(viewsets.ViewSet):
@@ -331,18 +336,15 @@ class ReviewViewSet(viewsets.GenericViewSet):
         logger.error(f"Review object cannot created/updated, errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    @action(methods=['DELETE'], detail=False, permission_classes=(IsOwnerOrAdmin,))
+    @action(methods=['DELETE'], detail=False)
     def delete(self, request, movie_id=None):
+        self.permission_classes = (IsAuthorOrAdmin,)
         saved_review = Review.objects.get_review(request.data['review_id']).first()
+        self.check_object_permissions(self.request, saved_review)
         if saved_review:
-            if self.check_object_permissions(self.request, saved_review):
-                saved_review.delete()
-                logger.info(f"Review object has been deleted, ID: {request.data['review_id']}")
-                return Response({'status_message': 'Review has been removed successfully.'},
-                                status=status.HTTP_200_OK)
-            logger.warning(
-                f"Review object cannot deleted, ID: {request.data['review_id']} by user ID: {request.user.id}")
-            return Response({'detail': 'You do not have permission to perform this action.'},
-                            status=status.HTTP_400_BAD_REQUEST)
+            saved_review.delete()
+            logger.info(f"Review object has been deleted, ID: {request.data['review_id']}")
+            return Response({'status_message': 'Review has been removed successfully.'},
+                            status=status.HTTP_200_OK)
         logger.warning(f"Trying to delete nonexistent Review object, ID: {request.data['review_id']}")
         return Response({'error': 'There is no such review.'}, status=status.HTTP_400_BAD_REQUEST)
